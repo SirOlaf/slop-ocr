@@ -1,0 +1,6 @@
+dist
+._*
+yomitan-chrome
+node_modules
+build
+swift/.*
