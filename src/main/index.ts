@@ -1,4 +1,5 @@
 import { app, globalShortcut, ipcMain, session, BrowserWindow, webContents, dialog } from 'electron';
+import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { OCRBridge } from './ocr-bridge';
@@ -155,9 +156,22 @@ async function init() {
   console.log('  Escape: Hide overlay');
 }
 
+function getFrontmostPID(): number | null {
+  try {
+    const result = execSync(
+      `osascript -e 'tell application "System Events" to get unix id of first application process whose frontmost is true'`,
+      { timeout: 2000 }
+    ).toString().trim();
+    return parseInt(result) || null;
+  } catch {
+    return null;
+  }
+}
+
 function registerShortcuts() {
   // Option+A: Trigger OCR scan
   globalShortcut.register('Option+A', async () => {
+    windowManager.setPreviousPID(getFrontmostPID());
     console.log('Scanning...');
     try {
       const result = await ocrBridge.scan();
@@ -186,10 +200,13 @@ function registerShortcuts() {
 
   // Cmd+Shift+P: Open window picker
   globalShortcut.register('CommandOrControl+Shift+P', async () => {
+    windowManager.setPreviousPID(getFrontmostPID());
     console.log('Opening window picker...');
     try {
       const windowInfo = await ocrBridge.pick();
       console.log('Selected window:', windowInfo.windowTitle || windowInfo.appName);
+
+      windowManager.setTargetPID(windowInfo.ownerPID);
 
       if (windowInfo.bounds) {
         windowManager.positionOverlay(windowInfo.bounds);
@@ -210,9 +227,10 @@ function registerShortcuts() {
     windowManager.toggleOverlay();
   });
 
-  // Escape: Hide overlay
+  // Escape: Hide overlay and refocus target app if it was the previous app
   globalShortcut.register('Escape', () => {
     windowManager.hideOverlay();
+    windowManager.focusPreviousIfTarget();
   });
 
   // Cmd+Shift+Y: Open Yomitan settings

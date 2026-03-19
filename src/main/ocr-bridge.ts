@@ -34,6 +34,7 @@ export interface WindowSelectedData {
   appName: string | null;
   windowTitle: string | null;
   bounds: WindowBounds | null;
+  ownerPID: number | null;
 }
 
 export interface CLIResponse {
@@ -45,6 +46,7 @@ export interface CLIResponse {
     appName?: string;
     windowTitle?: string;
     bounds?: WindowBounds;
+    ownerPID?: number;
     imageWidth?: number;
     imageHeight?: number;
     observations?: TextObservation[];
@@ -160,7 +162,8 @@ export class OCRBridge extends EventEmitter {
               windowId: response.data.windowId ?? null,
               appName: response.data.appName ?? null,
               windowTitle: response.data.windowTitle ?? null,
-              bounds: response.data.bounds ?? null
+              bounds: response.data.bounds ?? null,
+              ownerPID: response.data.ownerPID ?? null
             });
           } else {
             reject(new Error(response.error || 'Pick failed'));

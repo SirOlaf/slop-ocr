@@ -1,10 +1,13 @@
 import { BrowserWindow, screen } from 'electron';
+import { execSync } from 'child_process';
 import * as path from 'path';
 import { OCRData, WindowBounds } from './ocr-bridge';
 
 export class WindowManager {
   private overlayWindow: BrowserWindow | null = null;
   private currentBounds: WindowBounds | null = null;
+  private targetPID: number | null = null;
+  private previousPID: number | null = null;
 
   createOverlay(): BrowserWindow {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
@@ -72,6 +75,14 @@ export class WindowManager {
     });
   }
 
+  setTargetPID(pid: number | null): void {
+    this.targetPID = pid;
+  }
+
+  setPreviousPID(pid: number | null): void {
+    this.previousPID = pid;
+  }
+
   showOverlay(): void {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       this.overlayWindow.show();
@@ -81,6 +92,33 @@ export class WindowManager {
   hideOverlay(): void {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       this.overlayWindow.hide();
+    }
+  }
+
+  private getProcessGroupID(pid: number): number | null {
+    try {
+      const result = execSync(`ps -o pgid= -p ${pid}`, { timeout: 1000 }).toString().trim();
+      return parseInt(result) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  focusPreviousIfTarget(): void {
+    if (!this.previousPID || !this.targetPID) return;
+
+    const previousPGID = this.getProcessGroupID(this.previousPID);
+    const targetPGID = this.getProcessGroupID(this.targetPID);
+
+    if (previousPGID !== null && previousPGID === targetPGID) {
+      try {
+        execSync(
+          `osascript -e 'tell application "System Events" to set frontmost of first process whose unix id is ${this.previousPID} to true'`,
+          { timeout: 2000 }
+        );
+      } catch {
+        // Ignore activation errors
+      }
     }
   }
 

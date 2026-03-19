@@ -56,6 +56,7 @@ struct WindowSelectedData: Codable {
     let appName: String?
     let windowTitle: String?
     let bounds: WindowBounds?
+    let ownerPID: Int32?
 }
 
 struct WindowBounds: Codable {
@@ -263,16 +264,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCContentSharingPickerObserv
         // Find and store the window ID for tracking position changes
         self.currentWindowID = findWindowID(matching: rect)
 
+        // Look up app name, window title, and owner PID from CGWindowList using the window ID
+        var appName: String? = nil
+        var windowTitle: String? = nil
+        var ownerPID: Int32? = nil
+        if let windowID = self.currentWindowID,
+           let windowList = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID) as? [[String: Any]],
+           let info = windowList.first {
+            appName = info[kCGWindowOwnerName as String] as? String
+            windowTitle = info[kCGWindowName as String] as? String
+            ownerPID = info[kCGWindowOwnerPID as String] as? Int32
+        }
+
         let windowData = WindowSelectedData(
             windowId: currentWindowID.map { UInt32($0) },
-            appName: nil,
-            windowTitle: nil,
+            appName: appName,
+            windowTitle: windowTitle,
             bounds: WindowBounds(
                 x: rect.origin.x,
                 y: rect.origin.y,
                 width: rect.size.width,
                 height: rect.size.height
-            )
+            ),
+            ownerPID: ownerPID
         )
 
         sendSuccess(type: "pick", data: .windowSelected(windowData))
