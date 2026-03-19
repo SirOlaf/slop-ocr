@@ -210,7 +210,7 @@ function registerShortcuts() {
 
       if (windowInfo.bounds) {
         windowManager.positionOverlay(windowInfo.bounds);
-        windowManager.showOverlay();
+        windowManager.showOverlayPassThrough();
       }
     } catch (err) {
       console.error('Window picker failed:', err);

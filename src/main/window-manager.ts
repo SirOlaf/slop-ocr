@@ -85,7 +85,15 @@ export class WindowManager {
 
   showOverlay(): void {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+      this.overlayWindow.setIgnoreMouseEvents(false);
       this.overlayWindow.show();
+    }
+  }
+
+  showOverlayPassThrough(): void {
+    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+      this.overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+      this.overlayWindow.showInactive();
     }
   }
 
